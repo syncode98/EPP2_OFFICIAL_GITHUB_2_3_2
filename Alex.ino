@@ -184,6 +184,8 @@ void sendResponse(TPacket *packet)
 // Enable pull up resistors on pins 2 and 3
 void enablePullups()
 {
+  DDRD&=0b11111001;
+  PIND|=0b00000110;
   // Use bare-metal to enable the pull-up resistors on pins
   // 2 and 3. These are pins PD2 and PD3 respectively.
   // We set bits 2 and 3 in DDRD to 0 to make them inputs. 
@@ -207,8 +209,8 @@ void leftISR()
   else if (dir == RIGHT) {
     leftForwardTicksTurns++;
   }
-  Serial.print("LEFT: ");
-
+  Serial.println(leftForwardTicks);
+  
 }
 
 void rightISR()
@@ -225,7 +227,7 @@ void rightISR()
   else if (dir == RIGHT) {
     rightReverseTicksTurns++;
   }
-  Serial.print("RIGHT: ");
+  Serial.println(rightForwardTicks);
 
 }
 
@@ -236,6 +238,17 @@ void setupEINT()
   // Use bare-metal to configure pins 2 and 3 to be
   // falling edge triggered. Remember to enable
   // the INT0 and INT1 interrupts.
+  EIMSK|=0b00000011;
+  EICRA|=0b00001010;
+  sei();
+}
+
+ISR(INT0_vect){
+  leftISR();
+}
+
+ISR(INT1_vect){
+  rightISR();
 }
 
 // Implement the external interrupt ISRs below.
@@ -475,7 +488,25 @@ void handleCommand(TPacket *command)
         sendOK();
         forward((float) command->params[0], (float) command->params[1]);
       break;
-
+      
+    case COMMAND_REVERSE:
+        sendOK();
+        reverse((float) command->params[0], (float) command->params[1]);
+      break;
+    
+    case COMMAND_TURN_LEFT:
+        sendOK();
+        left((float) command->params[0], (float) command->params[1]);
+      break;
+      
+    case COMMAND_TURN_RIGHT:
+        sendOK();
+        right((float) command->params[0], (float) command->params[1]);
+      break;
+    case COMMAND_STOP:
+        sendOK();
+        stop( );
+      break;      
     /*
      * Implement code for other commands here.
      * 
@@ -563,13 +594,16 @@ void loop() {
 
 // Uncomment the code below for Step 2 of Activity 3 in Week 8 Studio 2
 
-// forward(0, 100);
+//
+//forward(0, 50);
+
+
 
 // Uncomment the code below for Week 9 Studio 2
 
-/*
+
  // put your main code here, to run repeatedly:
-  TPacket recvPacket; // This holds commands from the Pi
+  TPacket recvPacket; // This holds commands from the first
 
   TResult result = readPacket(&recvPacket);
   
@@ -586,5 +620,5 @@ void loop() {
         sendBadChecksum();
       } 
       
-      */
+      
 }
